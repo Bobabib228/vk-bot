@@ -204,6 +204,7 @@ for event in VkLongPoll(session).listen():
                             break
                         else:
                             users.append(User(sender,select[3],select[0],select[1],select[2],select[4]))
+
                             break
                 try:
                     insert_query = (f"update user set user_mode = 'start' where id = {sender}")
