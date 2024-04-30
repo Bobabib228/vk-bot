@@ -4,15 +4,17 @@ from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 from vk_api.utils import get_random_id
 import pymysql
-from config import host, user_bd, password_bd,db_name
+from config import host, user_bd, password_bd, db_name
+from text_hello import hello, message_start_info,message_zadanie1
 
 token = "vk1.a.uXfI_gAQDJjZ-FQOVafRXX7fxv4l8wmPK87hNp3YyiGy83j5300j62q773LpCv3SlJUx5Jab9RzSYf9FNKvcsVyXLtL4zc7KOQ99x0PZO6ef9CiHfEcYM6v89sOVTCAlvdQJwqh_BPXIgrU4g5w0CFH1ldq6yzEz9KfI1ZXCfv0Q-eZNh4fjHth_Ql55P58C_jdXTyxLPssgevHQB1FiJw"
 session = vk_api.VkApi(token=token)
 
+#connect с БД
 try:
     connetion = pymysql.connect(
         host=host,
-        user = user_bd,
+        user=user_bd,
         password=password_bd,
         database=db_name,
         cursorclass=pymysql.cursors.DictCursor
@@ -22,27 +24,24 @@ except Exception as ex:
     print(ex)
 
 
-
 class User():
-    def __init__(self, sender, mode, point, rank, place):
+    def __init__(self, sender, mode, point, rank, place,check_quest):
         self.id = sender
         self.mode = mode
         self.point = point
         self.rank = rank
         self.place = place
+        self.check_quest = check_quest
 
 
 class Admin():
-    def __init__(self, sender, password,mode):
+    def __init__(self, sender, password, mode):
         self.id = sender
-        #self.mode = mode
         self.password = password
         self.mode = mode
-        
+
 
 # функция вывода сообщений
-
-
 def write_message(sender, message, keyboard=None):
     post = {'user_id': sender,
             'message': message,
@@ -53,19 +52,9 @@ def write_message(sender, message, keyboard=None):
         post = post
     session.method('messages.send', post)
 
-# функция вывода стартового меню
-
-
+# Функции вывода клавиатур
 def write_start_meny(sender, message, keyboard):
-
-    keyboard.add_button("Задания", VkKeyboardColor.POSITIVE)
-    keyboard.add_line()
-    keyboard.add_button("Мои отчивки", VkKeyboardColor.PRIMARY)
-    keyboard.add_button("Моё звание", VkKeyboardColor.PRIMARY)
-    keyboard.add_button("Рейтинг", VkKeyboardColor.PRIMARY)
-    keyboard.add_line()
-    keyboard.add_button("Баллы", VkKeyboardColor.NEGATIVE)
-
+    keyboard.add_button("Старт", VkKeyboardColor.POSITIVE)
     write_message(sender, message, keyboard)
 
 
@@ -75,9 +64,107 @@ def write_back(sender, message, keyboard):
     write_message(sender, message, keyboard)
 
 
-def write_admin_meny(sender,message,keyboard):
-    keyboard.add_button("выйти", VkKeyboardColor.NEGATIVE)
+def write_prod_meny(sender, message, keyboard):
+    keyboard.add_button("Продолжить", VkKeyboardColor.POSITIVE)
+    write_message(sender, message, keyboard)
+
+
+def write_start_infobtn(sender, message,keyboard):
+    keyboard.add_button("Получить задание", VkKeyboardColor.POSITIVE)
     write_message(sender,message,keyboard)
+
+
+def write_donne(sender,message,keyboard):
+    keyboard.add_button("Готов", VkKeyboardColor.POSITIVE)
+    write_message(sender,message,keyboard)
+
+
+def write_admin(sender, message, keyboard):
+     keyboard.add_button("Просмотр статистики", VkKeyboardColor.SECONDARY)
+     keyboard.add_line()
+     keyboard.add_button("Выполнение задания", VkKeyboardColor.SECONDARY)
+     keyboard.add_line()
+     keyboard.add_button("Изменить статистику юзера", VkKeyboardColor.SECONDARY)
+     write_message(sender,message,keyboard)
+
+def write_change_keyboard(sender,message,keyboard):
+    keyboard.add_button("Изменить уровень", VkKeyboardColor.SECONDARY)
+    keyboard.add_button("Изменить колличество баллов", VkKeyboardColor.SECONDARY)
+    write_message(sender,message,keyboard)
+
+
+# Функция получения данных пользователя из БД
+def select_user():
+    try:
+        with connetion.cursor() as cursor:
+            insert_query = f"select * from user where id = {sender}"
+            cursor.execute(insert_query)
+            select = cursor.fetchall()
+            user_point = select[0]["point"]
+            user_rank = select[0]["rank"]
+            user_place = select[0]["place"]
+            user_mode = select[0]['user_mode']
+            check_quest = select[0]['check_quest']
+    except Exception as ex:
+        print(ex)
+    return user_point, user_rank, user_place, user_mode, check_quest
+
+#вариативное получение данных пользователя из БД
+def select_user2(id):
+    try:
+        with connetion.cursor() as cursor:
+            insert_query = f"select * from user where id = {id}"
+            cursor.execute(insert_query)
+            select = cursor.fetchall()
+            user_point = select[0]["point"]
+            user_rank = select[0]["rank"]
+            user_place = select[0]["place"]
+            user_mode = select[0]['user_mode']
+            check_quest = select[0]['check_quest']
+    except Exception as ex:
+        print(ex)
+    return user_point, user_rank, user_place, user_mode, check_quest
+
+
+def select_admin():
+    try:
+        with connetion.cursor() as cursor:
+            insert_query = f"select * from admins where id = {sender}"
+            cursor.execute(insert_query)
+            select = cursor.fetchall()
+            admin_nom = select[0]["Nom"]
+            admin_password = select[0]["password"]
+    except Exception as ex:
+        print(ex)
+    return admin_nom, admin_password
+
+
+def update_mode(mode):
+    try:
+        with connetion.cursor() as cursor:
+            cursor.execute((f"update user set user_mode = '{mode}' where id = {sender}"))
+            connetion.commit()
+    except Exception as ex:
+        print(ex)
+
+
+def convert(user_point, user_rank, user_place, user_mode,check_quest):
+    user.point = user_point
+    user.mode = user_mode
+    user.rank = user_rank
+    user.place = user_place
+    user.check_quest = check_quest
+
+# просмотр статистики пользователя по id
+def browse_user(id):
+    select = select_user2(id)
+    user_name = session.method("users.get", {"user_ids": id}) # вместо 1 подставляете айди нужного юзера
+    fullname = user_name[0]['first_name'] +  ' ' + user_name[0]['last_name'] # Полное имя пользователя
+    write_message(sender,f"Данные пользователя:\n\
+                            Фио: {fullname}\n\
+                            Баллы:{select[0]}\n\
+                            Уровень:{select[1]}")
+
 
 
 users = []
@@ -87,120 +174,165 @@ for event in VkLongPoll(session).listen():
     if event.type == VkEventType.MESSAGE_NEW and event.to_me:
         text_message = str(event.text).lower()
         keyboard = VkKeyboard()
-        # text_message = text_message.lower()
         sender = event.user_id
 
-        if text_message == "начать":
-            try:
-                with connetion.cursor() as cursor:
-                    fetch_id = cursor.execute(f"SELECT id from user where id = {sender} ")
-            except Exception as ex:
-                print(ex)
-            if fetch_id == 1:
+        match text_message:
+            case 'начать':
+                try:
+                    with connetion.cursor() as cursor:
+                        fetch_id = cursor.execute(f"SELECT id from user where id = {sender} ")
+                except Exception as ex:
+                    print(ex)
+
+                if fetch_id == 1:
+                    write_start_meny(sender,hello, keyboard)
+                    select = select_user()
+                    users.append(User(sender,select[3],select[0],select[1],select[2],select[4]))
                     try:
-                        write_start_meny(sender, "Здорова папаня", keyboard)
                         insert_query = (f"update user set user_mode = 'start' where id = {sender}")
                         with connetion.cursor() as cursor:
-                            user_mode = cursor.execute(insert_query)
+                            cursor.execute(insert_query)
                             connetion.commit()
-                            for user in users:
-                                users.append(User(sender,user_mode,0,0,0))
                     except Exception as ex:
                         print(ex)
-            elif fetch_id == 0:
-                write_start_meny(sender, "Выберите действиее:", keyboard)
-                for user in users:
+
+                elif fetch_id == 0:
+                    write_start_meny(sender, hello, keyboard)
+                    users.append(User(sender, "start", 0, 0, 0, 0))
                     try:
-                            with connetion.cursor() as cursor:
-                                insert_query = f"INSERT INTO `user` (id,point,rank,place,user_mode) VALUES ({sender},'0','0','0','start');"
-                                cursor.execute(insert_query)
-                                connetion.commit()
+                        with connetion.cursor() as cursor:
+                            insert_query = f"INSERT INTO `user` (id,point,rank,place,user_mode, check_quest) VALUES ({ sender},'0','0','0','start','0');"
+                            cursor.execute(insert_query)
+                            connetion.commit()
                     except Exception as ex:
                         print(ex)
-                    users.append(User(sender,"start",0,0,0))
+
+        # else:
+
+        #     for user in users:
+        #         select = select_user()
+        #         convert(select[0],select[1],select[2],select[3],select[4])
+
+        #         if user.mode == "start":
+        #             if text_message == "старт":
+        #                 write_prod_meny(sender,message_start_info,keyboard)
 
 
-        # if text_message == "/admin":
-        #     try:
-        #         with connetion.cursor() as cursor:
-        #             fetch_id2 = cursor.execute(f"SELECT id from admins where id = {sender} ")
-        #             print(fetch_id)
-        #     except Exception as ex:
-        #         print("EROR 1")
-        #         print(ex)
-        #     if fetch_id2 == 1:
+        #             elif text_message == "продолжить":
+        #                 write_start_infobtn(sender, f"Твой текущий уровень: {user.rank}\n\
+        #                                     Баллы {user.point} ", keyboard)
+                    
+        #             elif text_message == "получить задание":
+        #                 write_donne(sender, message_zadanie1,keyboard)
+
+        #             elif text_message == "готов":
+        #                 write_message(sender,"Молодец! Держи 50 баллов")
+        #                 user.point =int(user.point)+50
+        #                 try:
+        #                     insert_query = f"update user set point = '{user.point}' where id = {sender}"
+        #                     with connetion.cursor() as cursor:
+        #                         cursor.execute(insert_query)
+        #                         connetion.commit()
+        #                 except Exception as ex:
+        #                     print(ex)
+
+        #             elif text_message == "/admin":
+        #                     write_message(sender, "Введите пароль:")
+        #                     try:
+        #                         insert_query = (f"update user set user_mode = 'admin_reg' where id = {sender}")
+        #                         with connetion.cursor() as cursor:
+        #                             cursor.execute(insert_query)
+        #                             connetion.commit()
+        #                     except Exception as ex:
+        #                         print(ex)
+                
+
+        #         elif user.mode == "admin_reg":
+        #             select = select_admin()
+        #             password = select[1]
+        #             write_admin(sender, "Hello", keyboard)
+        #             if text_message == password:
+        #                 try:
+        #                     insert_query = (f"update user set user_mode = 'admins' where id = {sender}")
+        #                     with connetion.cursor() as cursor:
+        #                         cursor.execute(insert_query)
+        #                         connetion.commit()
+        #                 except Exception as ex:
+        #                     print(ex)
+                
+        #         elif user.mode == "admins_hello":
+        #             update_mode("admins")
+
+        #         elif user.mode == "admins":
+        #             if text_message == "просмотр статистики":
+        #                 write_message(sender, "Введите id")
+        #                 try:
+        #                     insert_query = (f"update user set user_mode = 'admin_browse' where id = {sender}")
+        #                     with connetion.cursor() as cursor:
+        #                         cursor.execute(insert_query)
+        #                         connetion.commit()
+        #                 except Exception as ex:
+        #                     print(ex)
+        #             elif text_message == "изменить статистику юзера":
+        #                 write_message(sender, "Введите id")
+        #                 try:
+        #                     insert_query = (f"update user set user_mode = 'admin_change' where id = {sender}")
+        #                     with connetion.cursor() as cursor:
+        #                         cursor.execute(insert_query)
+        #                         connetion.commit()
+        #                 except Exception as ex:
+        #                     print(ex)
+                
+        #         elif user.mode == "admin_change":
+        #             browse_user(text_message)
+        #             change_id = text_message
         #             try:
-        #                 write_start_meny(sender, "Вы пытаетесь войти как админ, введите пароль:", keyboard)
-        #                 user_mode = (f"update user set user_mode = 'admin_start' where id = {sender}")
+        #                 insert_query = (f"update user set user_mode = 'change_keyboard' where id = {sender}")
         #                 with connetion.cursor() as cursor:
-        #                     cursor.execute(user_mode)
+        #                     cursor.execute(insert_query)
         #                     connetion.commit()
         #             except Exception as ex:
         #                 print(ex)
-        #     elif fetch_id == 0:
-        #         write_message(sender,"Вы не являетесь админом!")
-                
 
-        #for user in users:
-            if user.id == sender: #если юзер уже был зарегестрирован
-                # try:
-                #     with connetion.cursor as cursor:
-                #         user_mode = (f"select user_mode from user where id = {sender}")
-                #     print(user_mode)
-                # except Exception as ex:
-                #     print(ex)
-                if user.mode == "start":
-                    if text_message == "баллы":
-                        # try:
-                        #     with connetion.cursor as cursor:
-                        #         point = (f"select point from user where id = {sender}")
-                        #         print(user_mode)
-                        # except Exception as ex:
-                        #     print(ex)
-                        write_start_meny(sender, f"Ваши баллы:{user.point}", keyboard)
-                    if text_message == "задания":
-                        #write_message(sender, "Тут гуляет ветер...")
-                        write_back(sender,"Выберите задания",keyboard)
-                        user_mode = "zadania"
-                    if text_message == "мои отчивки":
-                        write_back(sender, "Ваши отчивки",keyboard)
-                        user_mode = "achievement"
-                    if text_message == "моё звание":
-                        write_back(sender, f"Ваше звание:{user.rank}",keyboard)
-                        user_mode = "rank"
-                    if text_message == "рейтинг":
-                        write_back(sender, f"Ваше место:{user.place}",keyboard)
-                        user_mode = "rating"
-                    if text_message =="/admin":
-                        write_message(sender,"тут будет вход под админа")
-                    if text_message =="/adminadd":
-                        write_message(sender, "Тут будет добавление админа")
+        #         elif user.mode == "change_keyboard":
+        #             write_change_keyboard(sender,"Выберите что хотите изменить:", keyboard)
+        #             try:
+        #                 insert_query = (f"update user set user_mode = 'change' where id = {sender}")
+        #                 with connetion.cursor() as cursor:
+        #                     cursor.execute(insert_query)
+        #                     connetion.commit()
+        #             except Exception as ex:
+        #                 print(ex)
+
+        #         elif user.mode == "change":
+        #             if text_message == "изменить уровень":
+        #                 write_message(sender,"Введите название уровня на который хотите заменить:")
+        #                 update_mode("change_rank")
+
+        #         elif user.mode == "change_rank":
+        #             try:
+        #                 insert_query = f"update user set rank = '{text_message}' where id = {change_id}"
+        #                 with connetion.cursor() as cursor:
+        #                     cursor.execute(insert_query)
+        #                     connetion.commit()
+        #             except Exception as ex:
+        #                 print(ex)
+        #             write_message(sender,"Уровень успешно изменён")
+        #             # write_back(sender,"Выберите действие:",keyboard)
+        #             # if text_message == "назад":
+        #             #     update_mode("admins")
+        #             # фывжадлвы
+
+        #         elif user.mode == "admin_browse":
+        #             browse_user(text_message)
+        #             try:
+        #                 insert_query = (f"update user set user_mode = 'admins' where id = {sender}")
+        #                 with connetion.cursor() as cursor:
+        #                     cursor.execute(insert_query)
+        #                     connetion.commit()
+        #             except Exception as ex:
+        #                 print(ex)
 
 
-                    if user_mode == "zadania":
-                        if text_message == "назад":
-                            write_start_meny(sender, "Выберите действие", keyboard)
-                            user.mode = "start"
-                        
-                    if user_mode == "achievement":
-                        if text_message == "назад":
-                            write_start_meny(sender, "Выберите действие", keyboard)
-                            user.mode = "start"
-
-                    if user_mode == "rank":
-                        if text_message == "назад":
-                            write_start_meny(sender, "Выберите действие", keyboard)
-                            user.mode = "start"
-                    
-                    if user_mode == "rating":
-                        if text_message == "назад":
-                            write_start_meny(sender, "Выберите действие", keyboard)
-                            user.mode = "start"
-
-                    
-                            
-                    
-                    
-
-                
-            
+        #         if user.mode == "prod":
+        #             write_admin(sender, "Hello", keyboard)
