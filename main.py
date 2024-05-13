@@ -80,16 +80,21 @@ def write_donne(sender,message,keyboard):
 
 
 def write_admin(sender, message, keyboard):
-     keyboard.add_button("Просмотр статистики", VkKeyboardColor.SECONDARY)
-     keyboard.add_line()
-     keyboard.add_button("Выполнение задания", VkKeyboardColor.SECONDARY)
-     keyboard.add_line()
-     keyboard.add_button("Изменить статистику юзера", VkKeyboardColor.SECONDARY)
-     write_message(sender,message,keyboard)
+    keyboard.add_button("Просмотр статистики", VkKeyboardColor.SECONDARY)
+    keyboard.add_line()
+    keyboard.add_button("Выполнение задания", VkKeyboardColor.SECONDARY)
+    keyboard.add_line()
+    keyboard.add_button("Изменить статистику юзера", VkKeyboardColor.SECONDARY)
+    keyboard.add_line()
+    keyboard.add_button("Назад", VkKeyboardColor.NEGATIVE)
+    write_message(sender,message,keyboard)
 
 def write_change_keyboard(sender,message,keyboard):
     keyboard.add_button("Изменить уровень", VkKeyboardColor.SECONDARY)
+    keyboard.add_line()
     keyboard.add_button("Изменить колличество баллов", VkKeyboardColor.SECONDARY)
+    keyboard.add_line()
+    keyboard.add_button("Назад", VkKeyboardColor.NEGATIVE)
     write_message(sender,message,keyboard)
 
 
@@ -110,7 +115,7 @@ def select_user():
     return user_point, user_rank, user_place, user_mode, check_quest
 
 #вариативное получение данных пользователя из БД
-def select_user2(id):
+def select_user_variable(id):
     try:
         with connetion.cursor() as cursor:
             insert_query = f"select * from user where id = {id}"
@@ -155,17 +160,11 @@ def convert(user_point, user_rank, user_place, user_mode,check_quest):
     user.place = user_place
     user.check_quest = check_quest
 
-def convert_class(user_point, user_rank, user_place, user_mode,check_quest):
-    User.point = user_point
-    User.mode = user_mode
-    User.rank = user_rank
-    User.place = user_place
-    User.check_quest = check_quest
 
 # просмотр статистики пользователя по id
 def browse_user(id):
-    select = select_user2(id)
-    user_name = session.method("users.get", {"user_ids": id}) # вместо 1 подставляете айди нужного юзера
+    select = select_user_variable(id)
+    user_name = session.method("users.get", {"user_ids": id}) 
     fullname = user_name[0]['first_name'] +  ' ' + user_name[0]['last_name'] # Полное имя пользователя
     write_message(sender,f"Данные пользователя:\n\
                             Фио: {fullname}\n\
@@ -226,6 +225,17 @@ for event in VkLongPoll(session).listen():
                     print(ex)
 
         else:
+            select = select_user()
+            print(users)
+            if len(users) == 0: #проверка на случай если в БД есть запись о пользователе но в массиве его нет
+                users.append(User(sender,select[3],select[0],select[1],select[2],select[4]))
+            else:#проверка, существует ли запись если массив не пустой
+                for user in users:
+                    if user.id == sender:
+                        break
+                    else:
+                        users.append(User(sender,select[3],select[0],select[1],select[2],select[4]))
+                        break
 
             for user in users:
                 select = select_user()
