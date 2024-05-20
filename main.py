@@ -99,7 +99,7 @@ def write_change_keyboard(sender,message,keyboard):
 
 
 # Функция получения данных пользователя из БД
-def select_user():
+def select_user():#efefe
     try:
         with connetion.cursor() as cursor:
             insert_query = f"select * from user where id = {sender}"
