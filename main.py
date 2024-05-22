@@ -92,7 +92,7 @@ def write_admin(sender, message, keyboard):
 def write_change_keyboard(sender,message,keyboard):
     keyboard.add_button("Изменить уровень", VkKeyboardColor.SECONDARY)
     keyboard.add_line()
-    keyboard.add_button("Изменить колличество баллов", VkKeyboardColor.SECONDARY)
+    keyboard.add_button("Изменить количество баллов", VkKeyboardColor.SECONDARY)
     keyboard.add_line()
     keyboard.add_button("Назад", VkKeyboardColor.NEGATIVE)
     write_message(sender,message,keyboard)
@@ -280,9 +280,6 @@ for event in VkLongPoll(session).listen():
                                     connetion.commit()
                             except Exception as ex:
                                 print(ex)
-                
-                    case "admins_hello":
-                        update_mode("admins")
 
                     case "admins":
                         if text_message == "просмотр статистики":
@@ -297,8 +294,6 @@ for event in VkLongPoll(session).listen():
                         browse_user(text_message)
                         change_id = text_message
                         update_mode('change_keyboard')
-
-                    case "change_keyboard":
                         write_change_keyboard(sender,"Выберите что хотите изменить:", keyboard)
                         update_mode('change')
 
@@ -306,6 +301,11 @@ for event in VkLongPoll(session).listen():
                         if text_message == "изменить уровень":
                             write_message(sender,"Введите название уровня на который хотите заменить:")
                             update_mode("change_rank")
+                        elif text_message == "назад":
+                            update_mode('admins')
+                        elif text_message == 'изменить количество баллов':
+                            write_message(sender,"Введите количество баллов:")
+                            update_mode('change_point')
 
                     case "change_rank":
                         try:
@@ -316,14 +316,24 @@ for event in VkLongPoll(session).listen():
                         except Exception as ex:
                             print(ex)
                         write_message(sender,"Уровень успешно изменён")
-                        # write_back(sender,"Выберите действие:",keyboard)
-                        # if text_message == "назад":
-                        #     update_mode("admins")
+                        write_admin(sender, "Hello", keyboard)
+                        update_mode('admins')
                         
+                    case "change_point":
+                        try:
+                            insert_query = f"update user set point = '{text_message}' where id = {change_id}"
+                            with connetion.cursor() as cursor:
+                                cursor.execute(insert_query)
+                                connetion.commit()
+                        except Exception as ex:
+                            print(ex)
+                        write_message(sender,"Количество баллов изменено")
+                        write_admin(sender, "Hello", keyboard)
+                        update_mode('admins')
 
                     case "admin_browse":
                         browse_user(text_message)
                         update_mode('admins')
 
-                    case "prod":
-                        write_admin(sender, "Hello", keyboard)
+                    # case "prod":
+                    #     write_admin(sender, "Hello", keyboard)
