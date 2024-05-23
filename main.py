@@ -86,6 +86,8 @@ def write_admin(sender, message, keyboard):
     keyboard.add_line()
     keyboard.add_button("Изменить статистику юзера", VkKeyboardColor.SECONDARY)
     keyboard.add_line()
+    keyboard.add_button("Создать задание", VkKeyboardColor.SECONDARY)
+    keyboard.add_line()
     keyboard.add_button("Назад", VkKeyboardColor.NEGATIVE)
     write_message(sender,message,keyboard)
 
@@ -113,6 +115,14 @@ def select_user():#efefe
     except Exception as ex:
         print(ex)
     return user_point, user_rank, user_place, user_mode, check_quest
+
+
+def creating_record(tabl, column, meaning):
+    try:
+        with connetion.cursor() as cursor:
+            cursor.execute(f"insert into {tabl} ({column}) values ({meaning})")     
+    except Exception as ex:
+        print(ex)
 
 #вариативное получение данных пользователя из БД
 def select_user_variable(id):
@@ -289,6 +299,17 @@ for event in VkLongPoll(session).listen():
                         elif text_message == "изменить статистику юзера":
                             write_message(sender, "Введите id")
                             update_mode('admin_change')
+                        
+                        elif text_message == "создать задание":
+                            print("1")
+                            write_message(sender,"Введите название задания")
+                            update_mode('creating_name')
+
+                    case "creating_name":
+                        name = text_message
+                        print(name)
+                        update_mode("creating_text")
+
                 
                     case "admin_change":
                         browse_user(text_message)
