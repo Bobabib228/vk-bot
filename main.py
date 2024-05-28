@@ -190,7 +190,7 @@ def browse_user(id):
                             Уровень:{select[1]}")
     
 
-def ubdate_point(point):
+def update_point(point):
     try:
         insert_query = f"update user set point = '{point}' where id = {sender}"
         with connetion.cursor() as cursor:
@@ -199,6 +199,13 @@ def ubdate_point(point):
     except Exception as ex:
         print(ex)
 
+
+def update_check_quest(check):
+    try:
+        with connetion.cursor() as cursor:
+            cursor.execute(f"update user set check_quest = '{check}' where id = {sender}")
+    except Exception as ex:
+        print(ex)
 
 
 users = []
@@ -275,11 +282,18 @@ for event in VkLongPoll(session).listen():
                         
                         elif text_message == "получить задание":
                             write_donne(sender, message_zadanie1,keyboard)
+                            update_check_quest(1)
+                            
+
+                        elif text_message == "готов":
+                            write_message(sender,"Молодец! пройди тест по ссылке и пришли сюда скрин результата")
+                            user.point =int(user.point)+50
+                            update_point(user.point)
 
                         elif text_message == "готов":
                             write_message(sender,"Молодец! Держи 50 баллов")
                             user.point =int(user.point)+50
-                            ubdate_point(user.point)
+                            update_point(user.point)
 
                         elif text_message == "/admin":
                                 write_message(sender, "Введите пароль:")
@@ -346,8 +360,6 @@ for event in VkLongPoll(session).listen():
                         write_message(sender,"Задание добавлено")
                         update_mode("admins")
 
-
-                
                     case "admin_change":
                         browse_user(text_message)
                         change_id = text_message
