@@ -101,7 +101,7 @@ def write_change_keyboard(sender,message,keyboard):
 
 
 # Функция получения данных пользователя из БД
-def select_user():#efefe
+def select_user():
     try:
         with connetion.cursor() as cursor:
             insert_query = f"select * from user where id = {sender}"
@@ -117,10 +117,18 @@ def select_user():#efefe
     return user_point, user_rank, user_place, user_mode, check_quest
 
 
-def creating_record(tabl, column, meaning):
+def creating_record(tabl, column, meaning): #функция добавления данных в столбец бд
     try:
         with connetion.cursor() as cursor:
             cursor.execute(f"insert into {tabl} ({column}) values ({meaning})")     
+    except Exception as ex:
+        print(ex)
+
+
+def creating_quest(name, text, level, scores, result, priority): #функция создания записи о квесте в бд
+    try:
+        with connetion.cursor() as cursor:
+            cursor.execute(f"insert into quest (name, text, result, level, priority, scores) values ('{name}','{text}','{result}','{level}','{priority}','{scores}')")
     except Exception as ex:
         print(ex)
 
@@ -308,7 +316,36 @@ for event in VkLongPoll(session).listen():
                     case "creating_name":
                         name = text_message
                         print(name)
+                        write_message(sender, "Введите текст задания")
                         update_mode("creating_text")
+
+                    case "creating_text":
+                        text = text_message
+                        print(text)
+                        write_message(sender, "Введите, для какого уровня это задание")
+                        update_mode("creating_rank")
+
+                    case "creating_rank":
+                        level = text_message
+                        write_message(sender,"Введите приоритет задания от 0 до 10")
+                        update_mode("creating_priority")
+
+                    case "creating_priority":
+                        priority = int(text_message)
+                        write_message(sender, "Введите сколько баллов получит пользователь за выполнение задания")
+                        update_mode("creating_scores")
+
+                    case "creating_scores":
+                        scores = int(text_message)
+                        write_message(sender, "Введите, какой ответ даст пользователь на задание (картинка или текст)")
+                        update_mode("end_creating")
+
+                    case "end_creating":
+                        result = text_message
+                        creating_quest(name, text, level, scores, result, priority)
+                        write_message(sender,"Задание добавлено")
+                        update_mode("admins")
+
 
                 
                     case "admin_change":
