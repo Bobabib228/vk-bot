@@ -100,6 +100,14 @@ def write_change_keyboard(sender,message,keyboard):
     write_message(sender,message,keyboard)
 
 
+def write_user_meny(sender, message, keyboard):
+    keyboard.add_button("Получить задание", VkKeyboardColor.POSITIVE)
+    keyboard.add_line()
+    keyboard.add_button("Моя статистика", VkKeyboardColor.NEGATIVE)
+    write_message(sender,message,keyboard)
+
+
+
 # Функция получения данных пользователя из БД
 def select_user():
     try:
@@ -286,18 +294,24 @@ for event in VkLongPoll(session).listen():
                             
 
                         elif text_message == "готов":
-                            write_message(sender,"Молодец! пройди тест по ссылке и пришли сюда скрин результата")
+                            write_message(sender,"Молодец! пройди тест по ссылке и пришли сюда скрин результата")#тут добавить парсинг картинки
                             user.point =int(user.point)+50
                             update_point(user.point)
 
-                        elif text_message == "готов":
-                            write_message(sender,"Молодец! Держи 50 баллов")
+                        elif text_message == "отправить":
                             user.point =int(user.point)+50
                             update_point(user.point)
+                            write_user_meny(sender,"Молодец! Держи 50 баллов! Выбери действие:",keyboard)
+                            update_mode("user_meny")
 
                         elif text_message == "/admin":
                                 write_message(sender, "Введите пароль:")
                                 update_mode('admin_reg')
+
+                    case "user_meny":
+                        if text_message == "Получить задание":
+                            print("a")
+
                 
 
                     case "admin_reg":
