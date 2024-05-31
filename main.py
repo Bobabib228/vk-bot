@@ -216,6 +216,19 @@ def update_check_quest(check):
         print(ex)
 
 
+def quest_search():
+    try:
+        with connetion.cursor() as cursor:
+            cursor.execute(f"select * from quest where level = '{user.rank}'")
+            select = cursor.fetchall()
+            id_quest = select[0]["id"]
+            level_quest = select[0]["level"]
+            priority_quest = select[0]["priority"]
+    except Exception as ex:
+        print(ex)
+    return id_quest, level_quest, priority_quest
+
+
 users = []
 admins = []
 
@@ -309,10 +322,19 @@ for event in VkLongPoll(session).listen():
                                 update_mode('admin_reg')
 
                     case "user_meny":
-                        if text_message == "Получить задание":
+                        if text_message == "получить задание":
                             print("a")
+                            update_mode("start_quest")
+                        elif text_message == "моя статистика":
+                            update_mode("stat_chek")
 
-                
+                    case "start_quest":
+                        select = select_user()
+                        convert(select[0],select[1],select[2],select[3],select[4])
+                        quest_search()
+                        print("d")
+                        # if user.check_quest == 0:
+
 
                     case "admin_reg":
                         select = select_admin()
