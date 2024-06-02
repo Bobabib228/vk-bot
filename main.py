@@ -25,13 +25,14 @@ except Exception as ex:
 
 
 class User():
-    def __init__(self, sender, mode, point, rank, place,check_quest):
+    def __init__(self, sender, mode, point, rank, place,check_quest,priority_user):
         self.id = sender
         self.mode = mode
         self.point = point
         self.rank = rank
         self.place = place
         self.check_quest = check_quest
+        self.priority_user = priority_user
 
 
 class Admin():
@@ -101,7 +102,7 @@ def write_change_keyboard(sender,message,keyboard):
 
 
 def write_user_meny(sender, message, keyboard):
-    keyboard.add_button("Получить задание", VkKeyboardColor.POSITIVE)
+    keyboard.add_button("Выполнить следующее задание", VkKeyboardColor.POSITIVE)
     keyboard.add_line()
     keyboard.add_button("Моя статистика", VkKeyboardColor.NEGATIVE)
     write_message(sender,message,keyboard)
@@ -120,9 +121,10 @@ def select_user():
             user_place = select[0]["place"]
             user_mode = select[0]['user_mode']
             check_quest = select[0]['check_quest']
+            priority_user = select[0]["priority"]
     except Exception as ex:
         print(ex)
-    return user_point, user_rank, user_place, user_mode, check_quest
+    return user_point, user_rank, user_place, user_mode, check_quest, priority_user
 
 
 def creating_record(tabl, column, meaning): #функция добавления данных в столбец бд
@@ -179,12 +181,13 @@ def update_mode(mode):
         print(ex)
 
 
-def convert(user_point, user_rank, user_place, user_mode,check_quest):
+def convert(user_point, user_rank, user_place, user_mode,check_quest, priority_user):
     user.point = user_point
     user.mode = user_mode
     user.rank = user_rank
     user.place = user_place
     user.check_quest = check_quest
+    user.priority = priority_user
 
 
 # просмотр статистики пользователя по id
@@ -216,17 +219,50 @@ def update_check_quest(check):
         print(ex)
 
 
-def quest_search():
+# def quest_search():
+#     try:
+#         with connetion.cursor() as cursor:
+#             cursor.execute(f"select * from quest where level = '{user.rank}'")
+            #   select = cursor.fetchall()
+#             select_quest = select
+#             # print(select_quest)
+#             id_quest = []
+#             for value in select:
+#                 res = list(value.values())
+#                 # print(res)
+#                 id_quest.append(res[0])
+#             # print(id_quest)
+#     except Exception as ex:
+#         print(ex)
+#     return id_quest, select_quest
+
+
+def quest_search(priority):
     try:
         with connetion.cursor() as cursor:
-            cursor.execute(f"select * from quest where level = '{user.rank}'")
-            select = cursor.fetchall()
-            id_quest = select[0]["id"]
-            level_quest = select[0]["level"]
-            priority_quest = select[0]["priority"]
+            cursor.execute(f"select * from quest where level = '{user.rank}' and priority = {int(priority) + 1}")
+            quest_select = cursor.fetchall()
+            id_quest = quest_select[0]["id"]
+            name_quest = quest_select[0]["name"]
+            text_quest = quest_select[0]["text"]
+            result_quest = quest_select[0]["result"]
+            level_quest = quest_select[0]["level"]
+            priority_quest = quest_select[0]["priority"]
+            scores_quest = quest_select[0]["scores"]
     except Exception as ex:
         print(ex)
-    return id_quest, level_quest, priority_quest
+    return id_quest, name_quest, text_quest, result_quest, level_quest, priority_quest, scores_quest
+
+
+def update_priority(value):
+    priority = int(user.priority_user) + int(value)
+    try:
+        insert_query = f"update user set priority = '{priority}' where id = {sender}"
+        with connetion.cursor() as cursor:
+            cursor.execute(insert_query)
+            connetion.commit()
+    except Exception as ex:
+        print(ex)
 
 
 users = []
@@ -252,23 +288,23 @@ for event in VkLongPoll(session).listen():
                 select = select_user()
                 print(users)
                 if len(users) == 0: #проверка на случай если в БД есть запись о пользователе но в массиве его нет
-                    users.append(User(sender,select[3],select[0],select[1],select[2],select[4]))
+                    users.append(User(sender,select[3],select[0],select[1],select[2],select[4], select[5]))
                 else:#проверка, существует ли запись если массив не пустой
                     for user in users:
                         if user.id == sender:
                             break
                         else:
-                            users.append(User(sender,select[3],select[0],select[1],select[2],select[4]))
+                            users.append(User(sender,select[3],select[0],select[1],select[2],select[4], select[5]))
 
                             break
                 update_mode('start')
 
             elif fetch_id == 0:
                 write_start_meny(sender, hello, keyboard)
-                users.append(User(sender, "start", 0, 0, 0, 0))
+                users.append(User(sender, "start", 0, 0, 0, 0, 0))
                 try:
                     with connetion.cursor() as cursor:
-                        insert_query = f"INSERT INTO `user` (id,point,rank,place,user_mode, check_quest) VALUES ({ sender},'0','0','0','start','0');"
+                        insert_query = f"INSERT INTO `user` (id,point,rank,place,user_mode, check_quest, priority) VALUES ({ sender},'0','0','0','start','0', 0);"
                         cursor.execute(insert_query)
                         connetion.commit()
                 except Exception as ex:
@@ -276,20 +312,19 @@ for event in VkLongPoll(session).listen():
 
         else:
             select = select_user()
-            print(users)
             if len(users) == 0: #проверка на случай если в БД есть запись о пользователе но в массиве его нет
-                users.append(User(sender,select[3],select[0],select[1],select[2],select[4]))
+                users.append(User(sender,select[3],select[0],select[1],select[2],select[4], select[5]))
             else:#проверка, существует ли запись если массив не пустой
                 for user in users:
                     if user.id == sender:
                         break
                     else:
-                        users.append(User(sender,select[3],select[0],select[1],select[2],select[4]))
+                        users.append(User(sender,select[3],select[0],select[1],select[2],select[4], select[5]))
                         break
 
             for user in users:
                 select = select_user()
-                convert(select[0],select[1],select[2],select[3],select[4])
+                convert(select[0],select[1],select[2],select[3],select[4], select[5])
 
                 match user.mode:
                     case "start":
@@ -315,6 +350,7 @@ for event in VkLongPoll(session).listen():
                             user.point =int(user.point)+50
                             update_point(user.point)
                             write_user_meny(sender,"Молодец! Держи 50 баллов! Выбери действие:",keyboard)
+                            update_check_quest(0)
                             update_mode("user_meny")
 
                         elif text_message == "/admin":
@@ -322,18 +358,28 @@ for event in VkLongPoll(session).listen():
                                 update_mode('admin_reg')
 
                     case "user_meny":
-                        if text_message == "получить задание":
+                        if text_message == "выполнить следующее задание":
                             print("a")
-                            update_mode("start_quest")
+                            if user.check_quest == 0:
+                                print("b")
+                                select = quest_search(int(user.priority_user))
+                                update_priority("1")
+                                id_quest = select[0]
+                                write_message(sender, id_quest)
+                                update_mode("start_quest")
                         elif text_message == "моя статистика":
                             update_mode("stat_chek")
 
                     case "start_quest":
-                        select = select_user()
-                        convert(select[0],select[1],select[2],select[3],select[4])
-                        quest_search()
-                        print("d")
-                        # if user.check_quest == 0:
+                        update_mode("quest_output")
+                        
+
+                    case "quest_output":
+                        write_message(sender,"Привет")
+                            
+
+                            
+
 
 
                     case "admin_reg":
