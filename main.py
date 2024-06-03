@@ -108,6 +108,12 @@ def write_user_meny(sender, message, keyboard):
     write_message(sender,message,keyboard)
 
 
+def write_quest_action(sender,message,keyboard): #клавиатура, если результат квеста действие
+    keyboard.add_button("Задание выполнено", VkKeyboardColor.POSITIVE)
+    write_message(sender,message,keyboard)
+
+    
+
 
 # Функция получения данных пользователя из БД
 def select_user():
@@ -240,18 +246,21 @@ def update_check_quest(check):
 def quest_search(priority):
     try:
         with connetion.cursor() as cursor:
-            cursor.execute(f"select * from quest where level = '{user.rank}' and priority = {int(priority) + 1}")
-            quest_select = cursor.fetchall()
-            id_quest = quest_select[0]["id"]
-            name_quest = quest_select[0]["name"]
-            text_quest = quest_select[0]["text"]
-            result_quest = quest_select[0]["result"]
-            level_quest = quest_select[0]["level"]
-            priority_quest = quest_select[0]["priority"]
-            scores_quest = quest_select[0]["scores"]
+            filled = cursor.execute(f"select * from quest where level = '{user.rank}' and priority = {int(priority) + 1}")
+            if filled == 1:
+                quest_select = cursor.fetchall()
+                id_quest = quest_select[0]["id"]
+                name_quest = quest_select[0]["name"]
+                text_quest = quest_select[0]["text"]
+                result_quest = quest_select[0]["result"]
+                level_quest = quest_select[0]["level"]
+                priority_quest = quest_select[0]["priority"]
+                scores_quest = quest_select[0]["scores"]
+                return id_quest, name_quest, text_quest, result_quest, level_quest, priority_quest, scores_quest
+            else:
+                return ""
     except Exception as ex:
         print(ex)
-    return id_quest, name_quest, text_quest, result_quest, level_quest, priority_quest, scores_quest
 
 
 def update_priority(value):
@@ -273,7 +282,7 @@ for event in VkLongPoll(session).listen():
         text_message = str(event.text).lower()
         keyboard = VkKeyboard()
         sender = event.user_id
-
+        
         
         if text_message == 'начать':
             try:
@@ -361,17 +370,27 @@ for event in VkLongPoll(session).listen():
                         if text_message == "выполнить следующее задание":
                             print("a")
                             if user.check_quest == 0:
-                                print("b")
                                 select = quest_search(int(user.priority_user))
-                                update_priority("1")
-                                id_quest = select[0]
-                                write_message(sender, id_quest)
-                                update_mode("start_quest")
+                                if len(select) > 1:
+                                    update_priority("1")
+                                    id_quest = select[0] #name_quest, text_quest, result_quest, level_quest, priority_quest, scores_quest, check
+                                    name_quest = select[1]
+                                    text_quest = select[2]
+                                    result_quest = select[3]
+                                    level_quest = select[4]
+                                    priority_quest = select[5]
+                                    scores_quest = select[6]
+                                    print(result_quest)
+                                    update_mode("start_quest")
+                                else:
+                                    write_message(sender, "Произошла программная ошибка")
                         elif text_message == "моя статистика":
                             update_mode("stat_chek")
 
                     case "start_quest":
-                        update_mode("quest_output")
+                        print("хуй")
+                        if result_quest == "действие":
+                            write_quest_action(sender, f"{name_quest}\n{text_quest}\nЗа это ты получишь: {scores_quest}\n баллов", keyboard)
                         
 
                     case "quest_output":
