@@ -321,6 +321,7 @@ for event in VkLongPoll(session).listen():
 
         else:
             select = select_user()
+            print(users)
             if len(users) == 0: #проверка на случай если в БД есть запись о пользователе но в массиве его нет
                 users.append(User(sender,select[3],select[0],select[1],select[2],select[4], select[5]))
             else:#проверка, существует ли запись если массив не пустой
@@ -352,8 +353,7 @@ for event in VkLongPoll(session).listen():
 
                         elif text_message == "готов":
                             write_message(sender,"Молодец! пройди тест по ссылке и пришли сюда скрин результата")#тут добавить парсинг картинки
-                            user.point =int(user.point)+50
-                            update_point(user.point)
+                            
 
                         elif text_message == "отправить":
                             user.point =int(user.point)+50
@@ -370,7 +370,9 @@ for event in VkLongPoll(session).listen():
                         if text_message == "выполнить следующее задание":
                             print("a")
                             if user.check_quest == 0:
+                                print("b")
                                 select = quest_search(int(user.priority_user))
+                                print(select)
                                 if len(select) > 1:
                                     update_priority("1")
                                     id_quest = select[0] #name_quest, text_quest, result_quest, level_quest, priority_quest, scores_quest, check
@@ -380,26 +382,32 @@ for event in VkLongPoll(session).listen():
                                     level_quest = select[4]
                                     priority_quest = select[5]
                                     scores_quest = select[6]
-                                    print(result_quest)
-                                    update_mode("start_quest")
+                                    # update_mode("start_quest")
+                                    if result_quest == "действие":
+                                        write_quest_action(sender, f"{name_quest}\n{text_quest}\nЗа это ты получишь: {scores_quest}\n баллов", keyboard)
+                                        update_mode("quest_end_action")
+                                    elif result_quest == "картинка":
+                                        write_message(sender, "Присылай результат прямо сюда!")
+                                        update_mode("quest_end_photo")
+                                    elif result_quest == "текст":
+                                        write_message(sender,"Пиши ответ :)")
+                                        update_mode("quest_end_text")
                                 else:
                                     write_message(sender, "Произошла программная ошибка")
                         elif text_message == "моя статистика":
                             update_mode("stat_chek")
 
-                    case "start_quest":
-                        print("хуй")
-                        if result_quest == "действие":
-                            write_quest_action(sender, f"{name_quest}\n{text_quest}\nЗа это ты получишь: {scores_quest}\n баллов", keyboard)
-                        
+                    case "quest_end_action":
+                        if text_message == "задание выполнено":
+                            try:
+                                with connetion.cursor() as cursor:
+                                    cursor.execute(f"insert into perfom_quest (id_user, id_quest, result_text) values ('{sender}', '{id_quest}', 'action') ")
+                                    connetion.commit()
+                            except Exception as ex:
+                                print(ex)
 
-                    case "quest_output":
-                        write_message(sender,"Привет")
-                            
-
-                            
-
-
+                    case "quest_end_photo":
+                        break
 
                     case "admin_reg":
                         select = select_admin()
