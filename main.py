@@ -6,6 +6,8 @@ from vk_api.utils import get_random_id
 import pymysql
 from config import host, user_bd, password_bd, db_name
 from text_hello import hello, message_start_info,message_zadanie1
+import vk
+
 
 token = "vk1.a.uXfI_gAQDJjZ-FQOVafRXX7fxv4l8wmPK87hNp3YyiGy83j5300j62q773LpCv3SlJUx5Jab9RzSYf9FNKvcsVyXLtL4zc7KOQ99x0PZO6ef9CiHfEcYM6v89sOVTCAlvdQJwqh_BPXIgrU4g5w0CFH1ldq6yzEz9KfI1ZXCfv0Q-eZNh4fjHth_Ql55P58C_jdXTyxLPssgevHQB1FiJw"
 session = vk_api.VkApi(token=token)
@@ -22,7 +24,6 @@ try:
     print("Connect true")
 except Exception as ex:
     print(ex)
-
 
 class User():
     def __init__(self, sender, mode, point, rank, place,check_quest,priority_user):
@@ -52,6 +53,30 @@ def write_message(sender, message, keyboard=None):
     else:
         post = post
     session.method('messages.send', post)
+
+
+def send_photo(peer_id, attachments, random_id=0):
+    session.method('messages.send',
+        {"peer_id": peer_id, "attachment": attachments, "random_id": random_id})
+
+
+# def get_image():
+#     result = session.method("messages.getById", {
+#         "message_ids":[sender],
+#         "group_id": 223652436
+#     })
+#     print(result)
+
+#     try:
+#         photo = result['items'][0]['attachments'][0]['photo']
+#         attachment = "photo{}_{}_{}".format(photo['ovner_id'], photo['id'], photo['access_key'])
+#         with connetion.cursor() as cursor:
+#             cursor.execute(f"insert into perfom_quest (id_user, id_quest, result) values ('{sender}', '{id_quest}', '{attachment}') ")
+#             connetion.commit()
+#             print(attachment)
+#     except Exception as ex:
+#         attachment = None
+
 
 # Функции вывода клавиатур
 def write_start_meny(sender, message, keyboard):
@@ -387,10 +412,10 @@ for event in VkLongPoll(session).listen():
                                         write_quest_action(sender, f"{name_quest}\n{text_quest}\nЗа это ты получишь: {scores_quest}\n баллов", keyboard)
                                         update_mode("quest_end_action")
                                     elif result_quest == "картинка":
-                                        write_message(sender, "Присылай результат прямо сюда!")
+                                        write_message(sender,f"{name_quest}\n{text_quest}\nЗа это ты получишь: {scores_quest}\n баллов",keyboard.get_empty_keyboard())
                                         update_mode("quest_end_photo")
                                     elif result_quest == "текст":
-                                        write_message(sender,"Пиши ответ :)")
+                                        write_message(sender,f"{name_quest}\n{text_quest}\nЗа это ты получишь: {scores_quest}\n баллов", )
                                         update_mode("quest_end_text")
                                 else:
                                     write_message(sender, "Произошла программная ошибка")
@@ -401,13 +426,33 @@ for event in VkLongPoll(session).listen():
                         if text_message == "задание выполнено":
                             try:
                                 with connetion.cursor() as cursor:
-                                    cursor.execute(f"insert into perfom_quest (id_user, id_quest, result_text) values ('{sender}', '{id_quest}', 'action') ")
+                                    cursor.execute(f"insert into perfom_quest (id_user, id_quest, result) values ('{sender}', '{id_quest}', 'action') ")
                                     connetion.commit()
                             except Exception as ex:
                                 print(ex)
 
                     case "quest_end_photo":
-                        break
+                        result = session.method("messages.getById", {
+                        "message_ids": [event.message_id],
+                        "group_id": 223652436
+                        })
+
+                        try:
+                            photo = result['items'][0]['attachments'][0]['photo']
+                            attachment = "photo{}_{}_{}".format(photo['owner_id'], photo['id'], photo['access_key'])
+                        except:
+                            attachment = None
+                        
+                        try:
+                            with connetion.cursor() as cursor:
+                                cursor.execute(f"insert into perfom_quest (id_user, id_quest, result) values ('{sender}', '{id_quest}', '{attachment}') ")
+                                connetion.commit()
+                        except Exception as ex:
+                            print(ex)
+
+                        print("успех")
+                        
+                       
 
                     case "admin_reg":
                         select = select_admin()
