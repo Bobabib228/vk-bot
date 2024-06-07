@@ -25,22 +25,22 @@ try:
 except Exception as ex:
     print(ex)
 
-class User():
-    def __init__(self, sender, mode, point, rank, place,check_quest,priority_user):
-        self.id = sender
-        self.mode = mode
-        self.point = point
-        self.rank = rank
-        self.place = place
-        self.check_quest = check_quest
-        self.priority_user = priority_user
+# class User():
+#     def __init__(self, sender, mode, point, rank, place,check_quest,priority_user):
+#         self.id = sender
+#         self.mode = mode
+#         self.point = point
+#         self.rank = rank
+#         self.place = place
+#         self.check_quest = check_quest
+#         self.priority_user = priority_user
 
 
-class Admin():
-    def __init__(self, sender, password, mode):
-        self.id = sender
-        self.password = password
-        self.mode = mode
+# class Admin():
+#     def __init__(self, sender, password, mode):
+#         self.id = sender
+#         self.password = password
+#         self.mode = mode
 
 
 # функция вывода сообщений
@@ -155,15 +155,9 @@ def select_user():
             insert_query = f"select * from user where id = {sender}"
             cursor.execute(insert_query)
             select = cursor.fetchall()
-            user_point = select[0]["point"]
-            user_rank = select[0]["rank"]
-            user_place = select[0]["place"]
-            user_mode = select[0]['user_mode']
-            check_quest = select[0]['check_quest']
-            priority_user = select[0]["priority"]
     except Exception as ex:
         print(ex)
-    return user_point, user_rank, user_place, user_mode, check_quest, priority_user
+    return select
 
 
 def creating_record(tabl, column, meaning): #функция добавления данных в столбец бд
@@ -230,13 +224,13 @@ def update_mode2(mode, senders):
         print(ex)
 
 
-def convert(user_point, user_rank, user_place, user_mode,check_quest, priority_user):
-    user.point = user_point
-    user.mode = user_mode
-    user.rank = user_rank
-    user.place = user_place
-    user.check_quest = check_quest
-    user.priority = priority_user
+# def convert(user_point, user_rank, user_place, user_mode,check_quest, priority_user):
+#     user.point = user_point
+#     user.mode = user_mode
+#     user.rank = user_rank
+#     user.place = user_place
+#     user.check_quest = check_quest
+#     user.priority = priority_user
 
 
 # просмотр статистики пользователя по id
@@ -289,7 +283,7 @@ def update_check_quest(check):
 def quest_search(priority):
     try:
         with connetion.cursor() as cursor:
-            filled = cursor.execute(f"select * from quest where level = '{user.rank}' and priority = {int(priority) + 1}")
+            filled = cursor.execute(f"select * from quest where level = '{user_rank}' and priority = {int(priority) + 1}")
             if filled == 1:
                 quest_select = cursor.fetchall()
                 id_quest = quest_select[0]["id"]
@@ -307,7 +301,7 @@ def quest_search(priority):
 
 
 def update_priority(value):
-    priority = int(user.priority_user) + int(value)
+    priority = int(user_priority) + int(value)
     try:
         insert_query = f"update user set priority = '{priority}' where id = {sender}"
         with connetion.cursor() as cursor:
@@ -337,57 +331,43 @@ for event in VkLongPoll(session).listen():
 
             if fetch_id == 1:
                 write_start_meny(sender,hello, keyboard)
-                select = select_user()
-                print(users)
-                if len(users) == 0: #проверка на случай если в БД есть запись о пользователе но в массиве его нет
-                    users.append(User(sender,select[3],select[0],select[1],select[2],select[4], select[5]))
-                else:#проверка, существует ли запись если массив не пустой
-                    for user in users:
-                        if user.id == sender:
-                            break
-                        else:
-                            users.append(User(sender,select[3],select[0],select[1],select[2],select[4], select[5]))
-
-                            break
                 update_mode('start')
+                print(users)
 
             elif fetch_id == 0:
                 write_start_meny(sender, hello, keyboard)
-                users.append(User(sender, "start", 0, 0, 0, 0, 0))
                 try:
                     with connetion.cursor() as cursor:
-                        insert_query = f"INSERT INTO `user` (id,point,rank,place,user_mode, check_quest, priority) VALUES ({ sender},'0','0','0','start','0', 0);"
+                        insert_query = f"INSERT INTO `user` (id,point,rank,place,user_mode, check_quest, priority) VALUES ({ sender},'0','новичок','0','start','0', 0);"
                         cursor.execute(insert_query)
                         connetion.commit()
                 except Exception as ex:
                     print(ex)
 
         else:
-            select = select_user()
-            print(users)
-            if len(users) == 0: #проверка на случай если в БД есть запись о пользователе но в массиве его нет
-                users.append(User(sender,select[3],select[0],select[1],select[2],select[4], select[5]))
-            else:#проверка, существует ли запись если массив не пустой
-                for user in users:
-                    if user.id == sender:
-                        break
-                    else:
-                        users.append(User(sender,select[3],select[0],select[1],select[2],select[4], select[5]))
-                        break
-
-            for user in users:
                 select = select_user()
-                convert(select[0],select[1],select[2],select[3],select[4], select[5])
-
-                match user.mode:
+                user_point = select[0]["point"]
+                user_rank = select[0]["rank"]
+                user_place = select[0]["place"]
+                user_mode = select[0]['user_mode']
+                check_quest = select[0]['check_quest']
+                user_priority = select[0]["priority"]
+                
+                print( user_point,
+                user_rank,
+                user_place,
+                user_mode,
+                check_quest,
+                user_priority)
+                match user_mode:
                     case "start":
                         if text_message == "старт":
                             write_prod_meny(sender,message_start_info,keyboard)
 
 
                         elif text_message == "продолжить":
-                            write_start_infobtn(sender, f"Твой текущий уровень: {user.rank}\n\
-                                                Баллы {user.point} ", keyboard)
+                            write_start_infobtn(sender, f"Твой текущий уровень: {user_rank}\n\
+                                                Баллы {user_point} ", keyboard)
                         
                         elif text_message == "получить задание":
                             write_donne(sender, message_zadanie1,keyboard)
@@ -399,8 +379,8 @@ for event in VkLongPoll(session).listen():
                             
 
                         elif text_message == "отправить":
-                            user.point =int(user.point)+50
-                            update_point(user.point)
+                            user_point =int(user_point)+50
+                            update_point(user_point)
                             write_user_meny(sender,"Молодец! Держи 50 баллов! Выбери действие:",keyboard)
                             update_check_quest(0)
                             update_mode("user_meny")
@@ -412,9 +392,9 @@ for event in VkLongPoll(session).listen():
                     case "user_meny":
                         if text_message == "выполнить следующее задание":
                             print("a")
-                            if user.check_quest == 0:
+                            if check_quest == 0:
                                 print("b")
-                                select = quest_search(int(user.priority_user))
+                                select = quest_search(int(user_priority))
                                 print(select)
                                 if len(select) > 1:
                                     update_priority("1")
