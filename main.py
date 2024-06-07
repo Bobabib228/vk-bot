@@ -83,6 +83,9 @@ def write_start_meny(sender, message, keyboard):
     keyboard.add_button("Старт", VkKeyboardColor.POSITIVE)
     write_message(sender, message, keyboard)
 
+def write_message_keyboardNone(sender,message,keyboard):
+    # keyboard.add_button(get_empty_keyboard())
+    write_message(sender,message,keyboard)
 
 def write_back(sender, message, keyboard):
 
@@ -135,6 +138,11 @@ def write_user_meny(sender, message, keyboard):
 
 def write_quest_action(sender,message,keyboard): #клавиатура, если результат квеста действие
     keyboard.add_button("Задание выполнено", VkKeyboardColor.POSITIVE)
+    write_message(sender,message,keyboard)
+
+
+def write_completed_task(sender,message,keyboard):
+    keyboard.add_button("Посмотреть", VkKeyboardColor.POSITIVE)
     write_message(sender,message,keyboard)
 
     
@@ -197,16 +205,26 @@ def select_admin():
             cursor.execute(insert_query)
             select = cursor.fetchall()
             admin_nom = select[0]["Nom"]
+            admin_id = select[0]["id"]
             admin_password = select[0]["password"]
     except Exception as ex:
         print(ex)
-    return admin_nom, admin_password
+    return admin_nom, admin_password, admin_id
 
 
 def update_mode(mode):
     try:
         with connetion.cursor() as cursor:
             cursor.execute((f"update user set user_mode = '{mode}' where id = {sender}"))
+            connetion.commit()
+    except Exception as ex:
+        print(ex)
+
+
+def update_mode2(mode, senders):
+    try:
+        with connetion.cursor() as cursor:
+            cursor.execute((f"update user set user_mode = '{mode}' where id = {senders}"))
             connetion.commit()
     except Exception as ex:
         print(ex)
@@ -305,7 +323,7 @@ admins = []
 for event in VkLongPoll(session).listen():
     if event.type == VkEventType.MESSAGE_NEW and event.to_me:
         text_message = str(event.text).lower()
-        keyboard = VkKeyboard()
+        keyboard = VkKeyboard(one_time = True)
         sender = event.user_id
         
         
@@ -407,20 +425,23 @@ for event in VkLongPoll(session).listen():
                                     level_quest = select[4]
                                     priority_quest = select[5]
                                     scores_quest = select[6]
+                                    update_check_quest(1)
                                     # update_mode("start_quest")
                                     if result_quest == "действие":
                                         write_quest_action(sender, f"{name_quest}\n{text_quest}\nЗа это ты получишь: {scores_quest}\n баллов", keyboard)
                                         update_mode("quest_end_action")
                                     elif result_quest == "картинка":
-                                        write_message(sender,f"{name_quest}\n{text_quest}\nЗа это ты получишь: {scores_quest}\n баллов",keyboard.get_empty_keyboard())
+                                        write_message(sender,f"{name_quest}\n{text_quest}\nЗа это ты получишь: {scores_quest}\n баллов")
                                         update_mode("quest_end_photo")
                                     elif result_quest == "текст":
-                                        write_message(sender,f"{name_quest}\n{text_quest}\nЗа это ты получишь: {scores_quest}\n баллов", )
+                                        write_message(sender,f"{name_quest}\n{text_quest}\nЗа это ты получишь: {scores_quest}\n баллов")
                                         update_mode("quest_end_text")
                                 else:
                                     write_message(sender, "Произошла программная ошибка")
+                            else:
+                                write_message(sender, "У тебя уже есть задание или оно не проверено!")
                         elif text_message == "моя статистика":
-                            update_mode("stat_chek")
+                            update_mode("stat_chek") #
 
                     case "quest_end_action":
                         if text_message == "задание выполнено":
@@ -430,6 +451,11 @@ for event in VkLongPoll(session).listen():
                                     connetion.commit()
                             except Exception as ex:
                                 print(ex)
+                            select = select_admin()
+                            print(select[2])
+                            update_mode2("admin_check_task", select[2])
+                            write_completed_task(select[2], "Кто-то выполнил задание! Посмотреть?",keyboard)
+                            write_message(sender, "Молодец! Теперь дождись когда администратор проверит твоё задание!")
 
                     case "quest_end_photo":
                         result = session.method("messages.getById", {
@@ -449,10 +475,24 @@ for event in VkLongPoll(session).listen():
                                 connetion.commit()
                         except Exception as ex:
                             print(ex)
+                        select = select_admin()
+                        print(select[2])
+                        update_mode2("admin_check_task", select[2])
+                        write_completed_task(select[2], "Кто-то выполнил задание! Посмотреть?",keyboard)
+                        write_message(sender, "Молодец! Теперь дождись когда администратор проверит твоё задание!")
 
-                        print("успех")
-                        
-                       
+                    case "quest_end_text":
+                        try:
+                            with connetion.cursor() as cursor:
+                                cursor.execute(f"insert into perfom_quest (id_user, id_quest, result) values ('{sender}', '{id_quest}', '{text_message}') ")
+                                connetion.commit()
+                        except Exception as ex:
+                            print(ex)
+                        select = select_admin()
+                        print(select[2])
+                        update_mode2("admin_check_task", select[2])
+                        write_completed_task(select[2], "Кто-то выполнил задание! Посмотреть?",keyboard)
+                        write_message(sender, "Молодец! Теперь дождись когда администратор проверит твоё задание!")
 
                     case "admin_reg":
                         select = select_admin()
@@ -480,6 +520,9 @@ for event in VkLongPoll(session).listen():
                             print("1")
                             write_message(sender,"Введите название задания")
                             update_mode('creating_name')
+
+                    case "admin_check_task":
+                        break
 
                     case "creating_name":
                         name = text_message
