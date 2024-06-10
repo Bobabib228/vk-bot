@@ -492,7 +492,7 @@ for event in VkLongPoll(session).listen():
                                         break
                                     if result == "картинка" or id_quest == -1:
                                         peer_id = event.peer_id
-                                        session.method("messages.send", {"peer_id": peer_id, "attachment": answer , "random_id": 0})
+                                        session.method("messages.send", {"peer_id": peer_id, "attachment": answer, "random_id": 0})
                                         write_done_notdone(sender, "Выполнено?", keyboard)
                                         update_mode("done_notdone")
                                         break
@@ -507,6 +507,18 @@ for event in VkLongPoll(session).listen():
                     case "done_notdone":
                         if text_message == "засчитать":
                             write_user_meny(id_user,f"Молодец! Твоё задание проверили и ты справился! Ты получаешь {point} баллов",keyboard)
+                            try:
+                                with connetion.cursor() as cursor:
+                                    cursor.execute(f"select * from achievement where id_quest = {id_quest}")
+                                    select = cursor.fetchall()
+                                    achiev = select[0]["Achievement"]
+                                    print(achiev)
+                            except Exception as ex:
+                                print(ex)
+                            peer_id = event.peer_id
+                            session.method("messages.send", {"user_id": id_user, "peer_id": peer_id, "attachment": achiev, "message": "Держи ачивку!", "random_id": 0})
+                            write_done_notdone(sender, "Выполнено?", keyboard)
+                            update_mode("done_notdone")
                             update_mode2("user_meny",id_user)
                             try:
                                 with connetion.cursor() as cursor:
