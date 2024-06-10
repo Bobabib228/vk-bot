@@ -25,23 +25,6 @@ try:
 except Exception as ex:
     print(ex)
 
-# class User():
-#     def __init__(self, sender, mode, point, rank, place,check_quest,priority_user):
-#         self.id = sender
-#         self.mode = mode
-#         self.point = point
-#         self.rank = rank
-#         self.place = place
-#         self.check_quest = check_quest
-#         self.priority_user = priority_user
-
-
-# class Admin():
-#     def __init__(self, sender, password, mode):
-#         self.id = sender
-#         self.password = password
-#         self.mode = mode
-
 
 # функция вывода сообщений
 def write_message(sender, message, keyboard=None):
@@ -58,24 +41,6 @@ def write_message(sender, message, keyboard=None):
 def send_photo(peer_id, attachments, random_id=0):
     session.method('messages.send',
         {"peer_id": peer_id, "attachment": attachments, "random_id": random_id})
-
-
-# def get_image():
-#     result = session.method("messages.getById", {
-#         "message_ids":[sender],
-#         "group_id": 223652436
-#     })
-#     print(result)
-
-#     try:
-#         photo = result['items'][0]['attachments'][0]['photo']
-#         attachment = "photo{}_{}_{}".format(photo['ovner_id'], photo['id'], photo['access_key'])
-#         with connetion.cursor() as cursor:
-#             cursor.execute(f"insert into perfom_quest (id_user, id_quest, result) values ('{sender}', '{id_quest}', '{attachment}') ")
-#             connetion.commit()
-#             print(attachment)
-#     except Exception as ex:
-#         attachment = None
 
 
 # Функции вывода клавиатур
@@ -173,12 +138,14 @@ def creating_record(tabl, column, meaning): #функция добавления
         print(ex)
 
 
-def creating_quest(name, text, level, scores, result, priority): #функция создания записи о квесте в бд
+def creating_quest(name_quest, text, level, point, result, priority): #функция создания записи о квесте в бд
     try:
         with connetion.cursor() as cursor:
-            cursor.execute(f"insert into quest (name, text, result, level, priority, scores) values ('{name}','{text}','{result}','{level}','{priority}','{scores}')")
+            cursor.execute(f"insert into quest (name, text, result, level, priority, point) values ('{name_quest}','{text}','{result}','{level}','{priority}','{point}')")
+            connetion.commit()
     except Exception as ex:
         print(ex)
+
 
 #вариативное получение данных пользователя из БД
 def select_user_variable(id):
@@ -210,6 +177,7 @@ def select_admin():
         print(ex)
     return admin_nom, admin_password, admin_id
 
+
 def select_admin_all():
     try:
         with connetion.cursor() as cursor:
@@ -222,6 +190,7 @@ def select_admin_all():
     except Exception as ex:
         print(ex)
     return admin_nom, admin_password, admin_id
+
 
 def update_mode(mode):
     try:
@@ -239,15 +208,6 @@ def update_mode2(mode, senders):
             connetion.commit()
     except Exception as ex:
         print(ex)
-
-
-# def convert(user_point, user_rank, user_place, user_mode,check_quest, priority_user):
-#     user.point = user_point
-#     user.mode = user_mode
-#     user.rank = user_rank
-#     user.place = user_place
-#     user.check_quest = check_quest
-#     user.priority = priority_user
 
 
 # просмотр статистики пользователя по id
@@ -279,24 +239,6 @@ def update_check_quest(check):
         print(ex)
 
 
-# def quest_search():
-#     try:
-#         with connetion.cursor() as cursor:
-#             cursor.execute(f"select * from quest where level = '{user.rank}'")
-            #   select = cursor.fetchall()
-#             select_quest = select
-#             # print(select_quest)
-#             id_quest = []
-#             for value in select:
-#                 res = list(value.values())
-#                 # print(res)
-#                 id_quest.append(res[0])
-#             # print(id_quest)
-#     except Exception as ex:
-#         print(ex)
-#     return id_quest, select_quest
-
-
 def quest_search(priority):
     try:
         with connetion.cursor() as cursor:
@@ -309,8 +251,8 @@ def quest_search(priority):
                 result_quest = quest_select[0]["result"]
                 level_quest = quest_select[0]["level"]
                 priority_quest = quest_select[0]["priority"]
-                scores_quest = quest_select[0]["scores"]
-                return id_quest, name_quest, text_quest, result_quest, level_quest, priority_quest, scores_quest
+                point_quest = quest_select[0]["point"]
+                return id_quest, name_quest, text_quest, result_quest, level_quest, priority_quest, point_quest
             else:
                 return ""
     except Exception as ex:
@@ -329,8 +271,8 @@ def quest_search2(id):
                 result_quest = quest_select[0]["result"]
                 level_quest = quest_select[0]["level"]
                 priority_quest = quest_select[0]["priority"]
-                scores_quest = quest_select[0]["scores"]
-                return id_quest, name_quest, text_quest, result_quest, level_quest, priority_quest, scores_quest
+                point_quest = quest_select[0]["point"]
+                return id_quest, name_quest, text_quest, result_quest, level_quest, priority_quest, point_quest
             else:
                 return ""
     except Exception as ex:
@@ -362,14 +304,12 @@ for event in VkLongPoll(session).listen():
             try:
                 with connetion.cursor() as cursor:
                     fetch_id = cursor.execute(f"SELECT id from user where id = {sender} ")
-                    print(fetch_id)
             except Exception as ex:
                 print(ex)
 
             if fetch_id == 1:
                 write_start_meny(sender,hello, keyboard)
                 update_mode('start')
-                print(users)
 
             elif fetch_id == 0:
                 write_start_meny(sender, hello, keyboard)
@@ -381,6 +321,10 @@ for event in VkLongPoll(session).listen():
                 except Exception as ex:
                     print(ex)
 
+        elif text_message == "/admin":
+            write_message(sender, "Введите пароль:")
+            update_mode('admin_reg')
+
         else:
                 select = select_user()
                 user_point = select[0]["point"]
@@ -389,13 +333,7 @@ for event in VkLongPoll(session).listen():
                 user_mode = select[0]['user_mode']
                 check_quest = select[0]['check_quest']
                 user_priority = select[0]["priority"]
-                
-                print( user_point,
-                user_rank,
-                user_place,
-                user_mode,
-                check_quest,
-                user_priority)
+
                 match user_mode:
                     case "start":
                         if text_message == "старт":
@@ -424,43 +362,39 @@ for event in VkLongPoll(session).listen():
                             update_check_quest(0)
                             update_mode("user_meny")
 
-                        elif text_message == "/admin":
-                                write_message(sender, "Введите пароль:")
-                                update_mode('admin_reg')
-
+                       
                     case "user_meny":
                         if text_message == "выполнить следующее задание":
-                            print("a")
                             if check_quest == 0:
-                                print("b")
                                 select = quest_search(int(user_priority))
-                                print(select)
                                 if len(select) > 1:
                                     update_priority("1")
-                                    id_quest = select[0] #name_quest, text_quest, result_quest, level_quest, priority_quest, scores_quest, check
+                                    id_quest = select[0] 
                                     name_quest = select[1]
                                     text_quest = select[2]
                                     result_quest = select[3]
                                     level_quest = select[4]
                                     priority_quest = select[5]
-                                    scores_quest = select[6]
+                                    point_quest = select[6]
                                     update_check_quest(1)
-                                    # update_mode("start_quest")
                                     if result_quest == "действие":
-                                        write_quest_action(sender, f"{name_quest}\n{text_quest}\nЗа это ты получишь: {scores_quest}\n баллов", keyboard)
+                                        write_quest_action(sender, f"{name_quest}\n{text_quest}\nЗа это ты получишь: {point_quest}\n баллов", keyboard)
                                         update_mode("quest_end_action")
                                     elif result_quest == "картинка":
-                                        write_message(sender,f"{name_quest}\n{text_quest}\nЗа это ты получишь: {scores_quest}\n баллов")
+                                        write_message(sender,f"{name_quest}\n{text_quest}\nЗа это ты получишь: {point_quest}\n баллов")
                                         update_mode("quest_end_photo")
                                     elif result_quest == "текст":
-                                        write_message(sender,f"{name_quest}\n{text_quest}\nЗа это ты получишь: {scores_quest}\n баллов")
+                                        write_message(sender,f"{name_quest}\n{text_quest}\nЗа это ты получишь: {point_quest}\n баллов")
                                         update_mode("quest_end_text")
                                 else:
-                                    write_message(sender, "Произошла программная ошибка")
+                                    write_user_meny(sender,"Выберите действие:",keyboard)
+                                    update_mode("user_meny")
+
+                                    
                             else:
                                 write_message(sender, "У тебя уже есть задание или оно не проверено!")
                         elif text_message == "моя статистика":
-                            update_mode("stat_chek") #
+                            write_user_meny(sender,f"Твой текущий уровень: {user_rank}\nБаллы {user_point} ", keyboard)
 
                     case "quest_end_action":
                         if text_message == "задание выполнено":
@@ -471,7 +405,6 @@ for event in VkLongPoll(session).listen():
                             except Exception as ex:
                                 print(ex)
                             select = select_admin_all()
-                            print(select[2])
                             update_mode2("admin_check_task", select[2])
                             write_completed_task(select[2], "Кто-то выполнил задание! Посмотреть?",keyboard)
                             write_message(sender, "Молодец! Теперь дождись когда администратор проверит твоё задание!")
@@ -495,7 +428,6 @@ for event in VkLongPoll(session).listen():
                         except Exception as ex:
                             print(ex)
                         select = select_admin_all()
-                        print(select[2],"dfsdkg")
                         update_mode2("admin_check_task", select[2])
                         write_completed_task(select[2], "Кто-то выполнил задание! Посмотреть?",keyboard)
                         write_message(sender, "Молодец! Теперь дождись когда администратор проверит твоё задание!")
@@ -508,7 +440,6 @@ for event in VkLongPoll(session).listen():
                         except Exception as ex:
                             print(ex)
                         select = select_admin_all()
-                        print(select[2])
                         update_mode2("admin_check_task", select[2])
                         write_completed_task(select[2], "Кто-то выполнил задание! Посмотреть?",keyboard)
                         write_message(sender, "Молодец! Теперь дождись когда администратор проверит твоё задание!")
@@ -532,7 +463,6 @@ for event in VkLongPoll(session).listen():
                                 with connetion.cursor() as cursor:
                                     cursor.execute("select * from perfom_quest")
                                     select = cursor.fetchall()
-                                    print(select)
                             except Exception as ex:
                                 print(ex)
                             for quest in select:
@@ -544,16 +474,23 @@ for event in VkLongPoll(session).listen():
                                     user_name = session.method("users.get", {"user_ids": id_user}) 
                                     fullname = user_name[0]['first_name'] +  ' ' + user_name[0]['last_name']
                                     quest_select = quest_search2(id_quest)
-                                    name = quest_select[1]
-                                    result = quest_select[3]
-                                    scores = quest_select[6]
+                                    if id_quest == "-1":
+                                        name = "start quest"
+                                        result = "картинка"
+                                        point = "50"
+                                    else:
+                                        name = quest_select[1]
+                                        result = quest_select[3]
+                                        point = quest_select[6]
+                                        text = quest_select[2]
+
 
                                     write_message(sender, f"Пользователь {fullname} выполнил задание {name}")
                                     if result == "действие":
                                         write_done_notdone(sender, "Выполнено?", keyboard)
                                         update_mode("done_notdone")
                                         break
-                                    if result == "картинка":
+                                    if result == "картинка" or id_quest == -1:
                                         peer_id = event.peer_id
                                         session.method("messages.send", {"peer_id": peer_id, "attachment": answer , "random_id": 0})
                                         write_done_notdone(sender, "Выполнено?", keyboard)
@@ -569,16 +506,37 @@ for event in VkLongPoll(session).listen():
 
                     case "done_notdone":
                         if text_message == "засчитать":
-                            write_message(id_user,f"Молодец! Твоё задание проверили и ты справился! Ты получаешь {scores} баллов")
+                            write_user_meny(id_user,f"Молодец! Твоё задание проверили и ты справился! Ты получаешь {point} баллов",keyboard)
+                            update_mode2("user_meny",id_user)
                             try:
                                 with connetion.cursor() as cursor:
                                     cursor.execute(f"delete from perfom_quest where Nom = {nom}")
-                                    
+                                    cursor.execute(f"update user set point = '{point}' where id = {id_user}")
+                                    cursor.execute(f"update user set check_quest = '0' where id = {id_user}") 
+                                    cursor.execute("select * from perfom_quest")
+                                    select = cursor.fetchall()            
+                                    connetion.commit()
                             except Exception as ex:
                                 print(ex)
+                            if len(select) != 0:
+                                write_completed_task(sender, "Есть ещё задания, которые ожидают проверки",keyboard)
+                                update_mode("admin_check_task")
+                            else:
+                                write_user_meny(sender,"На этом всё", keyboard)
+                                update_mode("user_meny")
+                            
                             
                         elif text_message == "ответ неверен":
-                            pass
+                            write_message(id_user, "Ваше задание не засчитано, выполните его ещё раз")
+                            if result == "действие":
+                                        write_quest_action(id_user, f"{name}\n{text}\nЗа это ты получишь: {point}\n баллов", keyboard)
+                                        update_mode2("quest_end_action",id_user)
+                            elif result == "картинка":
+                                        write_message(id_user, f"{name}\n{text}\nЗа это ты получишь: {point}\n баллов")
+                                        update_mode2("quest_end_photo",id_user)
+                            elif result == "текст":
+                                        write_message(id_user, f"{name}\n{text}\nЗа это ты получишь: {point}\n баллов")
+                                        update_mode2("quest_end_text", id_user)
 
                     case "admins":
                         if text_message == "просмотр статистики":
@@ -590,20 +548,17 @@ for event in VkLongPoll(session).listen():
                             update_mode('admin_change')
                         
                         elif text_message == "создать задание":
-                            print("1")
                             write_message(sender,"Введите название задания")
                             update_mode('creating_name')
 
 
                     case "creating_name":
-                        name = text_message
-                        print(name)
+                        name_quest = text_message
                         write_message(sender, "Введите текст задания")
                         update_mode("creating_text")
 
                     case "creating_text":
                         text = text_message
-                        print(text)
                         write_message(sender, "Введите, для какого уровня это задание")
                         update_mode("creating_rank")
 
@@ -615,17 +570,50 @@ for event in VkLongPoll(session).listen():
                     case "creating_priority":
                         priority = int(text_message)
                         write_message(sender, "Введите сколько баллов получит пользователь за выполнение задания")
-                        update_mode("creating_scores")
+                        update_mode("creating_point")
 
-                    case "creating_scores":
-                        scores = int(text_message)
+                    case "creating_point":
+                        point = int(text_message)
                         write_message(sender, "Введите, какой ответ даст пользователь на задание (картинка или текст)")
+                        update_mode("creating_achiev_name")
+
+                    case "creating_achiev_name":
+                        result = text_message
+                        write_message(sender, "Введите название ачивки которую получит пользователь, за выполнение данного задания:")
+                        update_mode("creating_achiev")
+
+
+                    case "creating_achiev":
+                        name_achiev = text_message
+                        write_message(sender, "Пришлите фотографию ачивки:")
                         update_mode("end_creating")
 
                     case "end_creating":
-                        result = text_message
-                        creating_quest(name, text, level, scores, result, priority)
+                        achiev = session.method("messages.getById", {
+                        "message_ids": [event.message_id],
+                        "group_id": 223652436
+                        })
+
+                        try:
+                            photo = achiev['items'][0]['attachments'][0]['photo']
+                            attachment = "photo{}_{}_{}".format(photo['owner_id'], photo['id'], photo['access_key'])
+                        except:
+                            attachment = None
+                        
+                        creating_quest(name_quest, text, level, point, result, priority)
                         write_message(sender,"Задание добавлено")
+                        try:
+                            with connetion.cursor() as cursor:
+                                cursor.execute(f"select * from quest where name = '{name_quest}'")
+                                select = cursor.fetchall()
+                                id_quest = select[0]["id"]
+                                check = cursor.execute(f"insert into achievement (name, id_quest, Achievement) values ('{name_achiev}', '{id_quest}', '{attachment}') ")
+                                print(check)
+                                print(attachment)
+                                connetion.commit()
+                        except Exception as ex:
+                            print(ex)
+                        write_admin(sender,"Выберите действие", keyboard)
                         update_mode("admins")
 
                     case "admin_change":
@@ -672,6 +660,3 @@ for event in VkLongPoll(session).listen():
                     case "admin_browse":
                         browse_user(text_message)
                         update_mode('admins')
-
-                    # case "prod":
-                    #     write_admin(sender, "Hello", keyboard)
