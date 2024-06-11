@@ -562,6 +562,18 @@ for event in VkLongPoll(session).listen():
                         elif text_message == "создать задание":
                             write_message(sender,"Введите название задания")
                             update_mode('creating_name')
+                        elif text_message == "выполнение задания":
+                            try:
+                                with connetion.cursor() as cursor:
+                                    cursor.execute("select * from perfom_quest")
+                                    select = cursor.fetchall()
+                            except Exception as ex:
+                                print(ex)
+                            if len(select) != 0:
+                                update_mode("admin_check_task")
+                                write_completed_task(sender,"Есть непроверенные задания",keyboard)   
+                            else:
+                                write_admin(sender, "Нет заданий на проверку", keyboard)
 
 
                     case "creating_name":
@@ -641,6 +653,7 @@ for event in VkLongPoll(session).listen():
                             update_mode("change_rank")
                         elif text_message == "назад":
                             update_mode('admins')
+                            write_admin(sender,"Выберите действие", keyboard)
                         elif text_message == 'изменить количество баллов':
                             write_message(sender,"Введите количество баллов:")
                             update_mode('change_point')
@@ -671,4 +684,5 @@ for event in VkLongPoll(session).listen():
 
                     case "admin_browse":
                         browse_user(text_message)
+                        write_admin(sender, "Выберите действие", keyboard)
                         update_mode('admins')
