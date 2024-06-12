@@ -6,11 +6,12 @@ from vk_api.utils import get_random_id
 import pymysql
 from config import host, user_bd, password_bd, db_name
 from text_hello import hello, message_start_info,message_zadanie1
-import vk
 
 
 token = "vk1.a.uXfI_gAQDJjZ-FQOVafRXX7fxv4l8wmPK87hNp3YyiGy83j5300j62q773LpCv3SlJUx5Jab9RzSYf9FNKvcsVyXLtL4zc7KOQ99x0PZO6ef9CiHfEcYM6v89sOVTCAlvdQJwqh_BPXIgrU4g5w0CFH1ldq6yzEz9KfI1ZXCfv0Q-eZNh4fjHth_Ql55P58C_jdXTyxLPssgevHQB1FiJw"
 session = vk_api.VkApi(token=token)
+image = "D:/Vk_Bot/FFFFFFFF.jpg" #фото ачивки для первого задания
+upload = VkUpload(session)
 
 #connect с БД
 try:
@@ -98,6 +99,7 @@ def write_user_meny(sender, message, keyboard):
     keyboard.add_button("Выполнить следующее задание", VkKeyboardColor.POSITIVE)
     keyboard.add_line()
     keyboard.add_button("Моя статистика", VkKeyboardColor.NEGATIVE)
+    keyboard.add_button("Мои ачивки", VkKeyboardColor.SECONDARY)
     write_message(sender,message,keyboard)
 
 
@@ -290,8 +292,7 @@ def update_priority(value):
         print(ex)
 
 
-users = []
-admins = []
+
 
 for event in VkLongPoll(session).listen():
     if event.type == VkEventType.MESSAGE_NEW and event.to_me:
@@ -388,13 +389,43 @@ for event in VkLongPoll(session).listen():
                                         update_mode("quest_end_text")
                                 else:
                                     write_user_meny(sender,"Выберите действие:",keyboard)
-                                    update_mode("user_meny")
-
-                                    
+                                    update_mode("user_meny")  
                             else:
                                 write_message(sender, "У тебя уже есть задание или оно не проверено!")
+
                         elif text_message == "моя статистика":
                             write_user_meny(sender,f"Твой текущий уровень: {user_rank}\nБаллы {user_point} ", keyboard)
+
+                        elif text_message == "мои ачивки":
+                            try:
+                                with connetion.cursor() as cursor:
+                                    cursor.execute(f"select * from achievement_users where id_user = {sender}")
+                                    select_achiev_users = cursor.fetchall()
+                                    if select != 0:
+                                        write_message(sender,"Ваши ачивки:")
+                                        for achiev_user in select_achiev_users:
+                                            print(achiev_user)
+                                            id_achiev = achiev_user["id_achiev"]
+                                            if id_achiev == -1:
+                                                attachments = []
+                                                upload_image = upload.photo_messages(photos=image)[0]
+                                                attachments.append("photo{}_{}".format(upload_image['owner_id'], upload_image['id']))
+                                                peer_id = event.peer_id
+                                                session.method("messages.send", {"user_id": sender, "attachment": ','.join(attachments), "random_id": 0})
+                                            else:
+                                                print(id_achiev)
+                                                cursor.execute(f"select * from achievement where id_achiev = {id_achiev}")
+                                                select_achiev = cursor.fetchall()
+                                                print(select_achiev)
+                                                achiev = select_achiev[0]["Achievement"]
+                                                peer_id = event.peer_id
+                                                session.method("messages.send", {"user_id": sender, "peer_id": peer_id, "attachment": achiev, "random_id": 0})
+                                        write_user_meny(sender,"На этом всё", keyboard)
+                                    else:
+                                        write_user_meny(sender,"У вас нет ачивок", keyboard)
+                            except Exception as ex:
+                                print(ex)
+                        
 
                     case "quest_end_action":
                         if text_message == "задание выполнено":
@@ -470,6 +501,7 @@ for event in VkLongPoll(session).listen():
                                     nom = quest["Nom"]
                                     id_user = quest["id_user"]
                                     id_quest = quest["id_quest"]
+                                    print(id_quest)
                                     answer = quest["result"]
                                     user_name = session.method("users.get", {"user_ids": id_user}) 
                                     fullname = user_name[0]['first_name'] +  ' ' + user_name[0]['last_name']
@@ -483,8 +515,6 @@ for event in VkLongPoll(session).listen():
                                         result = quest_select[3]
                                         point = quest_select[6]
                                         text = quest_select[2]
-
-
                                     write_message(sender, f"Пользователь {fullname} выполнил задание {name}")
                                     if result == "действие":
                                         write_done_notdone(sender, "Выполнено?", keyboard)
@@ -507,39 +537,66 @@ for event in VkLongPoll(session).listen():
                     case "done_notdone":
                         if text_message == "засчитать":
                             write_user_meny(id_user,f"Молодец! Твоё задание проверили и ты справился! Ты получаешь {point} баллов",keyboard)
-                            try:
-                                with connetion.cursor() as cursor:
-                                    cursor.execute(f"select * from achievement where id_quest = {id_quest}")
-                                    select = cursor.fetchall()
-                                    achiev = select[0]["Achievement"]
-                                    print(achiev)
-                            except Exception as ex:
-                                print(ex)
-                            peer_id = event.peer_id
-                            session.method("messages.send", {"user_id": id_user, "peer_id": peer_id, "attachment": achiev, "message": "Держи ачивку!", "random_id": 0})
-                            write_done_notdone(sender, "Выполнено?", keyboard)
-                            update_mode("done_notdone")
+                            if id_quest != "-1":
+                                try:
+                                    with connetion.cursor() as cursor:
+                                        cursor.execute(f"select * from achievement where id_quest = {id_quest}")
+                                        select = cursor.fetchall()
+                                        achiev = select[0]["Achievement"]
+                                        id_achiev = select[0]["id_achiev"]
+                                except Exception as ex:
+                                    print(ex)
+                                peer_id = event.peer_id
+                                session.method("messages.send", {"user_id": id_user, "peer_id": peer_id, "attachment": achiev, "message": "Держи ачивку!", "random_id": 0})
+                                try:
+                                    with connetion.cursor() as cursor:
+                                        cursor.execute(f"insert into achievement_users (id_user, id_achiev) values ('{id_user}', '{id_achiev}')")
+                                        connetion.commit()
+                                except Exception as ex:
+                                    print(ex)
+                            else:
+                                attachments = []
+                                upload_image = upload.photo_messages(photos=image)[0]
+                                attachments.append("photo{}_{}".format(upload_image['owner_id'], upload_image['id']))
+                                peer_id = event.peer_id
+                                session.method("messages.send", {"user_id": id_user, "attachment": ','.join(attachments), "message": "Держи ачивку!", "random_id": 0})
+                                try:
+                                    with connetion.cursor() as cursor:
+                                        cursor.execute(f"insert into achievement_users (id_user, id_achiev) values ('{id_user}', '-1')")
+                                        connetion.commit()
+                                except Exception as ex:
+                                    print(ex)
                             update_mode2("user_meny",id_user)
                             try:
                                 with connetion.cursor() as cursor:
+                                    cursor.execute(f"select point from user where id = {id_user}")
+                                    select_user_point = cursor.fetchall()
+                                    result_point = int(select_user_point[0]["point"]) + int(point)
+                                    chek = cursor.execute(f"update user set point = '{result_point}' where id = {id_user}")
                                     cursor.execute(f"delete from perfom_quest where Nom = {nom}")
-                                    cursor.execute(f"update user set point = '{point}' where id = {id_user}")
                                     cursor.execute(f"update user set check_quest = '0' where id = {id_user}") 
                                     cursor.execute("select * from perfom_quest")
                                     select = cursor.fetchall()            
                                     connetion.commit()
                             except Exception as ex:
                                 print(ex)
+                            print(len(select))
                             if len(select) != 0:
+                                print("aaa")
                                 write_completed_task(sender, "Есть ещё задания, которые ожидают проверки",keyboard)
                                 update_mode("admin_check_task")
                             else:
-                                write_user_meny(sender,"На этом всё", keyboard)
+                                # write_user_meny(sender,"На этом всё", keyboard)
                                 update_mode("user_meny")
                             
                             
                         elif text_message == "ответ неверен":
                             write_message(id_user, "Ваше задание не засчитано, выполните его ещё раз")
+                            try:
+                                with connetion.cursor() as cursor:
+                                    cursor.execute(f"delete from perfom_quest where Nom = {nom}")
+                            except Exception as ex:
+                                print(ex)
                             if result == "действие":
                                         write_quest_action(id_user, f"{name}\n{text}\nЗа это ты получишь: {point}\n баллов", keyboard)
                                         update_mode2("quest_end_action",id_user)
@@ -549,6 +606,18 @@ for event in VkLongPoll(session).listen():
                             elif result == "текст":
                                         write_message(id_user, f"{name}\n{text}\nЗа это ты получишь: {point}\n баллов")
                                         update_mode2("quest_end_text", id_user)
+                            try:
+                                with connetion.cursor() as cursor:
+                                    chek = cursor.execute(f"select * from perfom_quest where Nom = {nom}")
+                            except Exception as ex:
+                                    print(ex)
+                            if chek != 0:
+                                print(select)
+                                write_completed_task(sender, "Есть ещё задания, которые ожидают проверки",keyboard)
+                                update_mode("admin_check_task")
+                            else:
+                                write_user_meny(sender,"На этом всё", keyboard)
+                                update_mode("user_meny")            
 
                     case "admins":
                         if text_message == "просмотр статистики":
@@ -562,6 +631,7 @@ for event in VkLongPoll(session).listen():
                         elif text_message == "создать задание":
                             write_message(sender,"Введите название задания")
                             update_mode('creating_name')
+
                         elif text_message == "выполнение задания":
                             try:
                                 with connetion.cursor() as cursor:
@@ -574,6 +644,10 @@ for event in VkLongPoll(session).listen():
                                 write_completed_task(sender,"Есть непроверенные задания",keyboard)   
                             else:
                                 write_admin(sender, "Нет заданий на проверку", keyboard)
+                            
+                        elif text_message == "назад":
+                            write_user_meny(sender,"Выберите действие",keyboard)
+                            update_mode("user_meny")
 
 
                     case "creating_name":
@@ -598,7 +672,7 @@ for event in VkLongPoll(session).listen():
 
                     case "creating_point":
                         point = int(text_message)
-                        write_message(sender, "Введите, какой ответ даст пользователь на задание (картинка или текст)")
+                        write_message(sender, "Введите, какой ответ даст пользователь на задание (картинка, текст или действие)")
                         update_mode("creating_achiev_name")
 
                     case "creating_achiev_name":
